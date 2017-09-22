@@ -8,21 +8,18 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import com.android.volley.AuthFailureError;
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
+import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.JsonObjectRequest;
-import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.HashMap;
-import java.util.Map;
-
-import static java.security.AccessController.getContext;
 
 
 public class Registro extends AppCompatActivity {
@@ -41,8 +38,6 @@ public class Registro extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_registro);
 
-
-
         TextNombre = (EditText) findViewById(R.id.textNombre);
         TextRut = (EditText) findViewById(R.id.textRut);
         TextClave = (EditText) findViewById(R.id.textClave);
@@ -53,6 +48,7 @@ public class Registro extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 if (v == buttonRegister) {
+                    //aca deben ir las validaciones de los campos
                     registerUser();
                 }
             }
@@ -64,59 +60,58 @@ public class Registro extends AppCompatActivity {
                 final String correo = TextCorreo.getText().toString().trim();
                 final String serial = TextSerial.getText().toString().trim();
 
-                StringRequest stringRequest = new StringRequest
-                                    (   Request.Method.POST,
-                                        URL_BASE + URL_RECURSO + URL_ACCION,
-                                        new Response.Listener<String>() {
-                                            @Override
-                                            public void onResponse(String response) {
-                                                if (response.trim().equals("true")) {
-                                                    Toast.makeText(getBaseContext(), "Register OK", Toast.LENGTH_LONG).show();
-                                                    openLogin();
-                                                } else {
-                                                    Toast.makeText(getBaseContext(), response, Toast.LENGTH_LONG).show();
-                                                }
-                                            }
-                                        },
-                                        new Response.ErrorListener() {
-                                            @Override
-                                            public void onErrorResponse(VolleyError error) {
-                                                Toast.makeText(getBaseContext(),error.toString(),Toast.LENGTH_LONG).show();
-                                            }
-                                        }
-                                    )
-                    {
-                        @Override
-                        protected Map<String,String> getParams(){
-                            Map<String,String> parametros = new HashMap<String, String>();
-                            parametros.put("nombre", TextNombre.getText().toString().trim());
-                            parametros.put("rut", TextRut.getText().toString().trim());
-                            parametros.put("login", TextRut.getText().toString().trim());
-                            parametros.put("password", TextClave.getText().toString().trim());
-                            parametros.put("correo", TextCorreo.getText().toString().trim());
-                            parametros.put("serial", TextSerial.getText().toString().trim());
-                            return parametros;
+
+                final String URL = URL_BASE + URL_RECURSO + URL_ACCION;
+
+                // Post params to be sent to the server
+                HashMap<String, String> params = new HashMap<String, String>();
+                params.put("nombre", nombre);
+                params.put("rut", rut);
+                params.put("login", rut);
+                params.put("password", password);
+                params.put("correo", correo);
+                params.put("serial", serial);
+
+                RequestQueue queue = Volley.newRequestQueue(getBaseContext());
+
+                JsonObjectRequest request_json = new JsonObjectRequest(
+                        Request.Method.POST,
+                        URL,
+                        new JSONObject(params),
+                        new Response.Listener<JSONObject>() {
+                            @Override
+                            public void onResponse(JSONObject response) {
+                                //Process os success response
+                                try {
+                                    Toast.makeText(getApplicationContext(),response.getString("mensaje"),Toast.LENGTH_SHORT).show();
+                                    final String rut = response.getString("rut");
+                                    openLogin(rut);
+                                } catch (JSONException e) {
+                                    //donde el string viene vacio???
+                                }
+                            }
+                        },
+                        new Response.ErrorListener() {
+                            @Override
+                            public void onErrorResponse(VolleyError error) {
+                                VolleyLog.e("Error: ", error.getMessage());
+                            }
                         }
-
-                        /*@Override
-                        public Map<String, String> getHeaders() throws AuthFailureError {
-                        Map<String,String> parametros = new HashMap<String, String>();
-                            parametros.put("Content-Type","application/x-www-form-urlencoded");
-                        return parametros;
-                        }*/
-                    };
-
-                RequestQueue requestQueue = Volley.newRequestQueue(getBaseContext());
-                requestQueue.add(stringRequest);
+                );
+                queue.add(request_json);
             }
-
-
-            private void openLogin(){
-                Intent i=new Intent(getApplicationContext(), Demo.class);
-                startActivity(i);
-            }
-        }
-        );
+        });
     }
+
+    private void openLogin(String rut){
+        final Boolean registrado = true;
+
+        Intent i=new Intent(this, Principal.class);
+        i.putExtra("rut",rut);
+        i.putExtra("registrado", registrado);
+        startActivity(i);
+    }
+
 }
+
 

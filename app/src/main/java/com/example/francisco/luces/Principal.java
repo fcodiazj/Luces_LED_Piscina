@@ -8,36 +8,58 @@ import android.view.ContextMenu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.Response;
+import com.android.volley.VolleyError;
+import com.android.volley.VolleyLog;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+import com.example.francisco.luces.com.example.francisco.entities.Luces;
 
-public class Demo extends AppCompatActivity implements View.OnClickListener {
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.JSONStringer;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+public class Principal extends AppCompatActivity implements View.OnClickListener {
+
     private boolean modificar = false;
     private boolean mas = false;
     private boolean menos = false;
     private boolean moviendo = false;
-    private int max_luces = 12;
+    //private int max_luces = 12;//MAxima cantidad de luces a controlar
     private int posx = 1;
     private int posy = 1;
     private int max_fila = 8;
     private int max_columna = 8;
     private String posicion;
     private int recursoID;
+
+    String serial;
+    int numero_luces_registradas;
+    int numero_luces_usadas;
+
+
     private String uriH = "@drawable/horizontal";
     private String uriV = "@drawable/vertical";
     private String uriSI = "@drawable/sup_iz";
     private String uriSD = "@drawable/sup_de";
     private String uriII = "@drawable/inf_iz";
     private String uriID = "@drawable/inf_de";
-    int numero_luces;
 
-
-
-
+    private String URL_BASE = "http://jashu.us.to/Luces_serweb";
+    private String URL_RECURSO = "/usuarios";
+    private String URL_ACCION = "/mostrar";
 
     @Override
     public void onClick(View v) {
@@ -59,9 +81,9 @@ public class Demo extends AppCompatActivity implements View.OnClickListener {
                     if (mas == true) {
                         //estoy agregando luces
 
-                        if (numero_luces<12){
-                            numero_luces=numero_luces+1;
-                            String luz_a_poner = "@drawable/luz" + String.valueOf(numero_luces);
+                        if (numero_luces_usadas<numero_luces_registradas){
+                            numero_luces_usadas=numero_luces_usadas+1;
+                            String luz_a_poner = "@drawable/luz" + String.valueOf(numero_luces_usadas);
                             int id_luz_a_poner = getResources().getIdentifier(luz_a_poner, "drawable", getPackageName());
                             ImageView borde_a_cambiar = (ImageView) findViewById(v.getId());
                             borde_a_cambiar.setTag(R.id.id_imagenview_container, v.getId());
@@ -84,8 +106,8 @@ public class Demo extends AppCompatActivity implements View.OnClickListener {
                 //estoy quitando luces
                 if (menos == true) {
 
-                    if (numero_luces>0){
-                        numero_luces=numero_luces-1;
+                    if (numero_luces_usadas>0){
+                        numero_luces_usadas=numero_luces_usadas-1;
 
                         String posicion_a_borrar = (String)v.getTag(R.id.posicion);
                         int fila = Integer.valueOf(posicion_a_borrar.substring(3,4));
@@ -174,7 +196,7 @@ public class Demo extends AppCompatActivity implements View.OnClickListener {
     @Override
     public boolean onContextItemSelected(MenuItem item) {
 
-       //busco la luz que quiero cambiar
+        //busco la luz que quiero cambiar
         int selectedViewID = item.getGroupId();
         ImageView luz_a_cambiar = (ImageView) findViewById(selectedViewID);
 
@@ -205,17 +227,63 @@ public class Demo extends AppCompatActivity implements View.OnClickListener {
     }
 
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_demo);
+        setContentView(R.layout.activity_principal);
 
         //rescato los parametros que vienen desde la otra activity
         Bundle bundle = getIntent().getExtras();
         String rut=bundle.getString("rut");
-        String serial=bundle.getString("serial");
         Boolean registrado=bundle.getBoolean("registrado");
-        numero_luces=bundle.getInt("numero_luces");
+
+        //numero_luces=bundle.getInt("numero_luces"); <-- esto debe ser obtenido desde la base de datos
+
+        //debo rescatar las cosas desde la base de datos, con el rut obtenido
+        final String URL = URL_BASE + URL_RECURSO + URL_ACCION;
+
+        // Post params to be sent to the server
+        HashMap<String, String> params = new HashMap<String, String>();
+        params.put("rut", rut);
+
+        RequestQueue queue = Volley.newRequestQueue(getBaseContext());
+
+        JsonObjectRequest request_json = new JsonObjectRequest(
+                Request.Method.POST,
+                URL,
+                new JSONObject(params),
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        //Process os success response
+                        try {
+                            serial = response.getString("serial").toString();
+                            numero_luces_registradas = Integer.valueOf(response.get("numero luces").toString());
+
+                            final Luces luces[] = new Luces[response.getJSONArray("luces").length()];
+                            JSONArray getArray = response.getJSONArray("luces");
+                            for (int i=0; i<response.getJSONArray("luces").length(); i++) {
+                                JSONObject objects = getArray.getJSONObject(i);
+                                luces[i].setIdLuz(Integer.valueOf(objects.get("id_luz").toString()));
+                                luces[i].setColor(objects.get("color").toString());
+                                luces[i].setPosFila(Integer.valueOf(objects.get("pos_fila").toString()));
+                                luces[i].setPosCol(Integer.valueOf(objects.get("pos_col").toString()));
+                            }
+                        } catch (JSONException e) {
+                            //donde el string viene vacio???
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        VolleyLog.e("Error: ", error.getMessage());
+                    }
+                }
+        );
+        queue.add(request_json);
+
 
         //Le asigno esos valores a los diferentes TextView
         TextView txtrut = (TextView)findViewById(R.id.rut);
@@ -226,9 +294,9 @@ public class Demo extends AppCompatActivity implements View.OnClickListener {
 
         TextView txtregistrado = (TextView)findViewById(R.id.registrado);
         if (registrado) {
-           txtregistrado.setText("logeado");
+            txtregistrado.setText("logeado");
         } else {
-           txtregistrado.setText("no logeado");
+            txtregistrado.setText("no logeado");
         }
 
         //pongo los botones +/- en apagado
@@ -262,7 +330,7 @@ public class Demo extends AppCompatActivity implements View.OnClickListener {
         button_mas.setOnClickListener(new Button.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (numero_luces<=12) {
+                if (numero_luces_usadas<numero_luces_registradas) {
                     mas=true;
                     menos=false;
 
@@ -274,11 +342,11 @@ public class Demo extends AppCompatActivity implements View.OnClickListener {
             }
         });
 
-       //defino el comportamiento del boton -
+        //defino el comportamiento del boton -
         button_menos.setOnClickListener(new Button.OnClickListener() {
-           @Override
+            @Override
             public void onClick(View v) {
-                if (numero_luces>0){
+                if (numero_luces_usadas<numero_luces_registradas){
                     mas=false;
                     menos=true;
 
@@ -288,7 +356,6 @@ public class Demo extends AppCompatActivity implements View.OnClickListener {
                 }
             }
         });
-
 
         //pongo las imagenes del marco
         int imageResourceH = getResources().getIdentifier(uriH, "drawable", getPackageName());
@@ -385,3 +452,4 @@ public class Demo extends AppCompatActivity implements View.OnClickListener {
 
 
 }
+

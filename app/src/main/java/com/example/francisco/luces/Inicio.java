@@ -31,6 +31,7 @@ public class Inicio extends AppCompatActivity {
     //rut 13272823-2
     //clave 1234
     //serial ADBC100
+
     public void iraDemo(View view) {
         final String rut = "13272823-2";
         final String clave ="1234";
