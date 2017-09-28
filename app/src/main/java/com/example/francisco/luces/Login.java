@@ -27,8 +27,8 @@ public class Login extends AppCompatActivity {
 
     private EditText TextRut;
     private EditText TextClave;
+    private Button boton_aceptar;
 
-    private Button buttonRegister;
     private static final String URL_BASE = "http://jashu.us.to/Luces_serweb";
     private static final String URL_RECURSO = "/usuarios";
     private static final String URL_ACCION = "/loguear";
@@ -38,42 +38,26 @@ public class Login extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-
-        Button botonAceptar = (Button)findViewById(R.id.boton_aceptar);
-        botonAceptar.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // validarDatos()
-            }
-        });
 
         TextRut = (EditText) findViewById(R.id.textRut);
         TextClave = (EditText) findViewById(R.id.textClave);
+        boton_aceptar = (Button) findViewById(R.id.boton_aceptar);
 
-        buttonRegister = (Button) findViewById(R.id.botonir);
-        buttonRegister.setOnClickListener(new Button.OnClickListener() {
+        boton_aceptar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (v == buttonRegister) {
-                    //aca deben ir las validaciones de los campos
-                    registerUser();
-                }
-            }
-
-            private void registerUser() {
-
-                final String rut = TextRut.getText().toString().trim();
+                //if (v == boton_aceptar) {
+                //aca deben ir las validaciones de los campos
+                //si la validaciones estan bien, intentamos el login
+                String rut = TextRut.getText().toString().trim();
                 final String password = TextClave.getText().toString().trim();
-
                 final String URL = URL_BASE + URL_RECURSO + URL_ACCION;
+
                 // Post params to be sent to the server
                 HashMap<String, String> params = new HashMap<String, String>();
-                 params.put("rut", rut);
-                 params.put("login", rut);
-                 params.put("password", password);
-
+                params.put("rut", rut);
+                params.put("login", rut);
+                params.put("password", password);
 
                 RequestQueue queue = Volley.newRequestQueue(getBaseContext());
                 JsonObjectRequest request_json = new JsonObjectRequest(
@@ -85,9 +69,9 @@ public class Login extends AppCompatActivity {
                             public void onResponse(JSONObject response) {
                                 //Process os success response
                                 try {
-                                    Toast.makeText(getApplicationContext(),response.getString("mensaje"),Toast.LENGTH_SHORT).show();
-                                    final String rut = response.getString("rut");
-                                    openLogin(rut);
+                                    //Toast.makeText(getApplicationContext(),response.getString("mensaje"),Toast.LENGTH_SHORT).show();
+                                    String response_rut = response.getString("rut").toString();
+                                    openLogin(response_rut);
                                 } catch (JSONException e) {
                                     //donde el string viene vacio???
                                 }
@@ -100,10 +84,14 @@ public class Login extends AppCompatActivity {
                             }
                         }
                 );
+
                 queue.add(request_json);
+                //}
             }
         });
     }
+
+
 
     private void openLogin(String rut){
         final Boolean registrado = true;

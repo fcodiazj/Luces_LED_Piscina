@@ -37,6 +37,7 @@ public class Principal extends AppCompatActivity implements View.OnClickListener
     private boolean mas = false;
     private boolean menos = false;
     private boolean moviendo = false;
+
     //private int max_luces = 12;//MAxima cantidad de luces a controlar
     private int posx = 1;
     private int posy = 1;
@@ -45,9 +46,9 @@ public class Principal extends AppCompatActivity implements View.OnClickListener
     private String posicion;
     private int recursoID;
 
-    String serial;
-    int numero_luces_registradas;
-    int numero_luces_usadas;
+    public String serial;
+    public int numero_luces_registradas;
+    public int numero_luces_usadas = 0;
 
 
     private String uriH = "@drawable/horizontal";
@@ -69,7 +70,6 @@ public class Principal extends AppCompatActivity implements View.OnClickListener
 
         //determino si estoy en un borde o en una luz (mover/agregar)
         boolean es_borde = ((iddrawable == R.drawable.vertical) || (iddrawable == R.drawable.horizontal) || (iddrawable == R.drawable.sup_iz) || (iddrawable == R.drawable.sup_de) || (iddrawable == R.drawable.inf_iz) || (iddrawable == R.drawable.inf_de));
-
         if (modificar == true) {
             //si modificar esta activado, se puede agregar, quitar, o mover
             if  (es_borde){
@@ -91,9 +91,10 @@ public class Principal extends AppCompatActivity implements View.OnClickListener
                             borde_a_cambiar.setTag(R.id.imagen, luz_a_poner);
                             //asocio un menu contextal a la imagen de la luz
                             registerForContextMenu(borde_a_cambiar);
-
                             borde_a_cambiar.setBackgroundColor(Color.rgb(255, 255, 255));
                             borde_a_cambiar.setImageResource(id_luz_a_poner);
+
+                            //aca hay que agregar el insert a la base de datos
 
                         } else {
                             Toast toast1 = Toast.makeText(getApplicationContext(),"No se pueden agregar mas luces", Toast.LENGTH_SHORT);
@@ -157,6 +158,8 @@ public class Principal extends AppCompatActivity implements View.OnClickListener
                         borde_a_cambiar.setTag(R.id.id_imagen, id_imagen_a_poner);
                         borde_a_cambiar.setBackgroundColor(Color.rgb(255, 255, 255));
                         borde_a_cambiar.setImageResource(id_imagen_a_poner);
+
+                        //aca hay que agregar el drop a la base de datos
                     } else {
                         Toast toast1 = Toast.makeText(getApplicationContext(),"No existen luces para borrar", Toast.LENGTH_SHORT);
                         toast1.show();
@@ -168,12 +171,20 @@ public class Principal extends AppCompatActivity implements View.OnClickListener
             if (!es_borde) {
                 ImageView luz_a_cambiar = (ImageView) findViewById(v.getId());
                 int color_luz = ((ColorDrawable)luz_a_cambiar.getBackground()).getColor();
-                if (color_luz==Color.rgb(16, 26, 232)){
-                    luz_a_cambiar.setBackgroundColor(Color.rgb(241, 223, 19));
-                } else {
-                    luz_a_cambiar.setBackgroundColor(Color.rgb(16, 26, 232));
-                }
+                if (color_luz==Color.rgb(255,255, 255))
+                    luz_a_cambiar.setBackgroundColor(Color.rgb(255, 0, 0));
+                if (color_luz==Color.rgb(255,0, 0))
+                    luz_a_cambiar.setBackgroundColor(Color.rgb(0, 99, 0));
+                if (color_luz==Color.rgb(0,99, 0))
+                    luz_a_cambiar.setBackgroundColor(Color.rgb(0, 0, 204));
+                if (color_luz==Color.rgb(0,0,204))
+                    luz_a_cambiar.setBackgroundColor(Color.rgb(255, 235, 0));
+                if (color_luz==Color.rgb(255, 235, 0))
+                    luz_a_cambiar.setBackgroundColor(Color.rgb(102,0,204));
+                if (color_luz==Color.rgb(102,0,204))
+                    luz_a_cambiar.setBackgroundColor(Color.rgb(255,255,255));
 
+                //otro update, ahora para el color
             }
         }
     }
@@ -206,13 +217,13 @@ public class Principal extends AppCompatActivity implements View.OnClickListener
                 luz_a_cambiar.setBackgroundColor(Color.rgb(255, 0, 0));
                 return true;
             case 2:
-                luz_a_cambiar.setBackgroundColor(Color.rgb(0, 102, 0));
+                luz_a_cambiar.setBackgroundColor(Color.rgb(0, 99, 0));
                 return true;
             case 3:
                 luz_a_cambiar.setBackgroundColor(Color.rgb(0, 0, 204));
                 return true;
             case 4:
-                luz_a_cambiar.setBackgroundColor(Color.rgb(255, 255, 0));
+                luz_a_cambiar.setBackgroundColor(Color.rgb(255, 235, 0));
                 return true;
             case 5:
                 luz_a_cambiar.setBackgroundColor(Color.rgb(102, 0, 204));
@@ -226,136 +237,71 @@ public class Principal extends AppCompatActivity implements View.OnClickListener
         }
     }
 
+    private void ponerLuz (String color, int pos_fila, int pos_col ) {
+        if (numero_luces_usadas < numero_luces_registradas) {
+            numero_luces_usadas = numero_luces_usadas + 1;
+
+            //selecciono el srawable de la luz correspondiente
+            String luz_a_poner = "@drawable/luz" + String.valueOf(numero_luces_usadas);
+            int id_luz_a_poner = getResources().getIdentifier(luz_a_poner, "drawable", getPackageName());
+
+            //selecciono cual de todos los imageview debe ser cambiado
+            posicion = "pos" + String.valueOf(pos_fila) + String.valueOf(pos_col);
+            recursoID = getResources().getIdentifier(posicion, "id", getPackageName());
+
+            ImageView img = (ImageView) findViewById(recursoID);
+            img.setOnClickListener(this);
+
+            img.setTag(R.id.id_imagenview_container,recursoID);
+            img.setTag(R.id.id_imagen, id_luz_a_poner);
+            img.setTag(R.id.imagen, luz_a_poner);
+            img.setTag(R.id.posicion, posicion);
+
+            //asocio un menu contextal a la imagen de la luz
+            registerForContextMenu(img);
+            switch (color) {
+                case "rojo":
+                    img.setBackgroundColor(Color.rgb(255, 0, 0));
+                    break;
+
+                case "verde":
+                    img.setBackgroundColor(Color.rgb(0, 99, 0));
+                    break;
+
+                case "azul":
+                    img.setBackgroundColor(Color.rgb(0, 0, 204));
+                    break;
+
+                case "amarillo":
+                    img.setBackgroundColor(Color.rgb(255, 235, 0));
+                    break;
+
+                case "morado":
+                    img.setBackgroundColor(Color.rgb(102, 0, 204));
+                    break;
+
+                case "blanco":
+                    img.setBackgroundColor(Color.rgb(255, 255, 255));
+                    break;
+
+                default:
+                    img.setBackgroundColor(Color.rgb(255, 255, 255));
+                    break;
+            }
+
+            img.setImageResource(id_luz_a_poner);
+
+        } else {
+            Toast toast1 = Toast.makeText(getApplicationContext(),"No se pueden agregar mas luces", Toast.LENGTH_SHORT);
+            toast1.show();
+        }
+    }
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_principal);
-
-        //rescato los parametros que vienen desde la otra activity
-        Bundle bundle = getIntent().getExtras();
-        String rut=bundle.getString("rut");
-        Boolean registrado=bundle.getBoolean("registrado");
-
-        //numero_luces=bundle.getInt("numero_luces"); <-- esto debe ser obtenido desde la base de datos
-
-        //debo rescatar las cosas desde la base de datos, con el rut obtenido
-        final String URL = URL_BASE + URL_RECURSO + URL_ACCION;
-
-        // Post params to be sent to the server
-        HashMap<String, String> params = new HashMap<String, String>();
-        params.put("rut", rut);
-
-        RequestQueue queue = Volley.newRequestQueue(getBaseContext());
-
-        JsonObjectRequest request_json = new JsonObjectRequest(
-                Request.Method.POST,
-                URL,
-                new JSONObject(params),
-                new Response.Listener<JSONObject>() {
-                    @Override
-                    public void onResponse(JSONObject response) {
-                        //Process os success response
-                        try {
-                            serial = response.getString("serial").toString();
-                            numero_luces_registradas = Integer.valueOf(response.get("numero luces").toString());
-
-                            final Luces luces[] = new Luces[response.getJSONArray("luces").length()];
-                            JSONArray getArray = response.getJSONArray("luces");
-                            for (int i=0; i<response.getJSONArray("luces").length(); i++) {
-                                JSONObject objects = getArray.getJSONObject(i);
-                                luces[i].setIdLuz(Integer.valueOf(objects.get("id_luz").toString()));
-                                luces[i].setColor(objects.get("color").toString());
-                                luces[i].setPosFila(Integer.valueOf(objects.get("pos_fila").toString()));
-                                luces[i].setPosCol(Integer.valueOf(objects.get("pos_col").toString()));
-                            }
-                        } catch (JSONException e) {
-                            //donde el string viene vacio???
-                        }
-                    }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        VolleyLog.e("Error: ", error.getMessage());
-                    }
-                }
-        );
-        queue.add(request_json);
-
-
-        //Le asigno esos valores a los diferentes TextView
-        TextView txtrut = (TextView)findViewById(R.id.rut);
-        txtrut.setText(rut);
-
-        TextView txtserial = (TextView)findViewById(R.id.serial);
-        txtserial.setText(serial);
-
-        TextView txtregistrado = (TextView)findViewById(R.id.registrado);
-        if (registrado) {
-            txtregistrado.setText("logeado");
-        } else {
-            txtregistrado.setText("no logeado");
-        }
-
-        //pongo los botones +/- en apagado
-        final Button button_mas = (Button) findViewById(R.id.button_mas);
-        final Button button_menos = (Button) findViewById(R.id.button_menos);
-        button_mas.setVisibility(View.GONE);
-        button_menos.setVisibility(View.GONE);
-
-        //defino el comportamiento del boton modificar
-        final Button button_modificar = (Button) findViewById(R.id.button_modificar);
-        button_modificar.setOnClickListener(new Button.OnClickListener() {
-
-            @Override
-            public void onClick(View v) {
-                if (!modificar) {
-                    modificar=true;
-                    //button_modificar.setBackgroundColor(0xFF00FF00);
-                    button_mas.setVisibility(View.VISIBLE);
-                    button_menos.setVisibility(View.VISIBLE);
-                } else {
-                    modificar=false;
-                    //button_modificar.setBackgroundColor(0x00000000);
-                    button_mas.setVisibility(View.GONE);
-                    button_menos.setVisibility(View.GONE);
-                }
-            }
-        });
-
-
-        //defino el comportamiento del boton +
-        button_mas.setOnClickListener(new Button.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (numero_luces_usadas<numero_luces_registradas) {
-                    mas=true;
-                    menos=false;
-
-                }else {
-                    Toast toast1 = Toast.makeText(getApplicationContext(),"No se pueden agregar mas luces", Toast.LENGTH_SHORT);
-                    toast1.show();
-                }
-
-            }
-        });
-
-        //defino el comportamiento del boton -
-        button_menos.setOnClickListener(new Button.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (numero_luces_usadas<numero_luces_registradas){
-                    mas=false;
-                    menos=true;
-
-                }else {
-                    Toast toast1 = Toast.makeText(getApplicationContext(),"No existen luces para borrar", Toast.LENGTH_SHORT);
-                    toast1.show();
-                }
-            }
-        });
 
         //pongo las imagenes del marco
         int imageResourceH = getResources().getIdentifier(uriH, "drawable", getPackageName());
@@ -448,8 +394,135 @@ public class Principal extends AppCompatActivity implements View.OnClickListener
         img4.setTag(R.id.id_imagen, R.drawable.inf_de);
         img4.setImageResource(imageResourceID);
 
-    }
+        //pongo los botones +/- en apagado
+        final Button button_mas = (Button) findViewById(R.id.button_mas);
+        final Button button_menos = (Button) findViewById(R.id.button_menos);
+        button_mas.setVisibility(View.GONE);
+        button_menos.setVisibility(View.GONE);
 
+        //defino el comportamiento del boton modificar
+        final Button button_modificar = (Button) findViewById(R.id.button_modificar);
+        button_modificar.setOnClickListener(new Button.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                if (!modificar) {
+                    modificar=true;
+                    //button_modificar.setBackgroundColor(0xFF00FF00);
+                    button_mas.setVisibility(View.VISIBLE);
+                    button_menos.setVisibility(View.VISIBLE);
+                } else {
+                    modificar=false;
+                    //button_modificar.setBackgroundColor(0x00000000);
+                    button_mas.setVisibility(View.GONE);
+                    button_menos.setVisibility(View.GONE);
+                }
+            }
+        });
+
+
+        //defino el comportamiento del boton +
+        button_mas.setOnClickListener(new Button.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (numero_luces_usadas<numero_luces_registradas) {
+                    mas=true;
+                    menos=false;
+
+                }else {
+                    Toast toast1 = Toast.makeText(getApplicationContext(),"No se pueden agregar mas luces", Toast.LENGTH_SHORT);
+                    toast1.show();
+                }
+
+            }
+        });
+
+        //defino el comportamiento del boton -
+        button_menos.setOnClickListener(new Button.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (numero_luces_usadas<numero_luces_registradas){
+                    mas=false;
+                    menos=true;
+
+                }else {
+                    Toast toast1 = Toast.makeText(getApplicationContext(),"No existen luces para borrar", Toast.LENGTH_SHORT);
+                    toast1.show();
+                }
+            }
+        });
+
+
+
+        //rescato los parametros que vienen desde la otra activity
+        Bundle bundle = getIntent().getExtras();
+        String rut = bundle.getString("rut");
+        Boolean registrado = bundle.getBoolean("registrado");
+
+
+        //debo rescatar las cosas desde la base de datos, con el rut obtenido
+        final String URL = URL_BASE + URL_RECURSO + URL_ACCION;
+
+        // Post params to be sent to the server
+        HashMap<String, String> params = new HashMap<String, String>();
+        params.put("rut", rut);
+
+        RequestQueue queue = Volley.newRequestQueue(getBaseContext());
+
+        JsonObjectRequest request_json = new JsonObjectRequest(
+                Request.Method.POST,
+                URL,
+                new JSONObject(params),
+                new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject response) {
+                        //Process os success response
+                        try {
+                            serial = response.getString("serial").toString();
+                            numero_luces_registradas = Integer.valueOf(response.get("numero luces").toString());
+
+                            final Luces luces[] = new Luces[response.getJSONArray("luces").length()];
+                            JSONArray getArray = response.getJSONArray("luces");
+                            for (int i = 0; i < response.getJSONArray("luces").length(); i++) {
+                                JSONObject objects = getArray.getJSONObject(i);
+                                Luces lucesItem = new Luces();
+                                lucesItem.setIdLuz(Integer.valueOf(objects.get("id_luz").toString()));
+                                lucesItem.setColor(objects.get("color").toString());
+                                lucesItem.setPosFila(Integer.valueOf(objects.get("pos_fila").toString()));
+                                lucesItem.setPosCol(Integer.valueOf(objects.get("pos_col").toString()));
+                                luces[i]=lucesItem;
+                                ponerLuz (lucesItem.getColor(), lucesItem.getPosFila(), lucesItem.getPosCol());
+                            }
+                        } catch (Exception e) {
+                            //donde el string viene vacio???
+                            e.printStackTrace();
+                        }
+                    }
+                },
+                new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        VolleyLog.e("Error: ", error.getMessage());
+                    }
+                }
+        );
+        queue.add(request_json);
+
+        //Le asigno esos valores a los diferentes TextView
+        TextView txtrut = (TextView)findViewById(R.id.rut);
+        txtrut.setText(rut);
+
+        TextView txtserial = (TextView)findViewById(R.id.serial);
+        txtserial.setText(serial);
+
+        TextView txtregistrado = (TextView)findViewById(R.id.registrado);
+        if (registrado) {
+            txtregistrado.setText("logeado");
+        } else {
+            txtregistrado.setText("no logeado");
+        }
+
+    }
 
 }
 
