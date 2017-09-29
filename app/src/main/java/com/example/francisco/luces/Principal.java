@@ -48,7 +48,8 @@ public class Principal extends AppCompatActivity implements View.OnClickListener
 
     public String serial;
     public int numero_luces_registradas;
-    public int numero_luces_usadas = 0;
+    public int numero_luces_usadas = 0; //parte en cero, y se incrementa en onCreate y onClick
+    public int[] lista_id_luces; //arreglo para manejar el id de las luces creadas y borradas;  0:id_libre 1:id usado 3:disponible
 
 
     private String uriH = "@drawable/horizontal";
@@ -63,9 +64,9 @@ public class Principal extends AppCompatActivity implements View.OnClickListener
     private String URL_ACCION = "/mostrar";
 
     @Override
-    public void onClick(View v) {
+    public void onClick(View view) {
         Integer iddrawable;
-        iddrawable = (Integer) v.getTag(R.id.id_imagen);
+        iddrawable = (Integer) view.getTag(R.id.id_imagen);
         iddrawable = iddrawable == null ? 0 : iddrawable;
 
         //determino si estoy en un borde o en una luz (mover/agregar)
@@ -80,15 +81,25 @@ public class Principal extends AppCompatActivity implements View.OnClickListener
                 } else {
                     if (mas == true) {
                         //estoy agregando luces
-
-                        if (numero_luces_usadas<numero_luces_registradas){
+                        ponerLuz (0,0,0,"blanco", view);
+                        /*if (numero_luces_usadas<numero_luces_registradas){
                             numero_luces_usadas=numero_luces_usadas+1;
+
+                            //selecciono el drawable de la luz correspondiente
                             String luz_a_poner = "@drawable/luz" + String.valueOf(numero_luces_usadas);
                             int id_luz_a_poner = getResources().getIdentifier(luz_a_poner, "drawable", getPackageName());
-                            ImageView borde_a_cambiar = (ImageView) findViewById(v.getId());
-                            borde_a_cambiar.setTag(R.id.id_imagenview_container, v.getId());
+
+                            //selecciono cual de todos los imageview debe ser cambiado
+                            //posicion = "pos" + String.valueOf(pos_fila) + String.valueOf(pos_col);
+                            //recursoID = getResources().getIdentifier(posicion, "id", getPackageName());
+
+                            //asocio la posicion con un imageview
+                            ImageView borde_a_cambiar = (ImageView) findViewById(view.getId());
+
+                            borde_a_cambiar.setTag(R.id.id_imagenview_container, view.getId());
                             borde_a_cambiar.setTag(R.id.id_imagen, id_luz_a_poner);
                             borde_a_cambiar.setTag(R.id.imagen, luz_a_poner);
+
                             //asocio un menu contextal a la imagen de la luz
                             registerForContextMenu(borde_a_cambiar);
                             borde_a_cambiar.setBackgroundColor(Color.rgb(255, 255, 255));
@@ -99,7 +110,7 @@ public class Principal extends AppCompatActivity implements View.OnClickListener
                         } else {
                             Toast toast1 = Toast.makeText(getApplicationContext(),"No se pueden agregar mas luces", Toast.LENGTH_SHORT);
                             toast1.show();
-                        }
+                        }*/
 
                     }
                 }
@@ -107,69 +118,16 @@ public class Principal extends AppCompatActivity implements View.OnClickListener
                 //estoy quitando luces
                 if (menos == true) {
 
-                    if (numero_luces_usadas>0){
-                        numero_luces_usadas=numero_luces_usadas-1;
-
-                        String posicion_a_borrar = (String)v.getTag(R.id.posicion);
-                        int fila = Integer.valueOf(posicion_a_borrar.substring(3,4));
-                        int columna = Integer.valueOf(posicion_a_borrar.substring(4,5));
-
-                        String borde_a_poner="";
-                        if (fila==1) {
-                            switch(columna){
-                                case 1:
-                                    borde_a_poner = uriSI;
-                                    break;
-
-                                case 8:
-                                    borde_a_poner = uriSD;
-                                    break;
-
-                                default:
-                                    borde_a_poner = uriH;
-                                    break;
-                            }
-                        }
-
-                        if (fila==8) {
-                            switch (columna) {
-                                case 1:
-                                    borde_a_poner = uriII;
-                                    break;
-
-                                case 8:
-                                    borde_a_poner = uriID;
-                                    break;
-
-                                default:
-                                    borde_a_poner = uriH;
-                                    break;
-                            }
-                        }
-
-                        if (!((fila==8)||(fila==1))){
-                            borde_a_poner = uriV;
-                        }
-
-                        int id_imagen_a_poner = getResources().getIdentifier(borde_a_poner, "drawable", getPackageName());
-
-                        ImageView borde_a_cambiar = (ImageView) findViewById(v.getId());
-                        borde_a_cambiar.setTag(R.id.imagen, borde_a_poner);
-                        borde_a_cambiar.setTag(R.id.id_imagen, id_imagen_a_poner);
-                        borde_a_cambiar.setBackgroundColor(Color.rgb(255, 255, 255));
-                        borde_a_cambiar.setImageResource(id_imagen_a_poner);
-
-                        //aca hay que agregar el drop a la base de datos
-                    } else {
-                        Toast toast1 = Toast.makeText(getApplicationContext(),"No existen luces para borrar", Toast.LENGTH_SHORT);
-                        toast1.show();
+                    if (numero_luces_usadas>0) {
+                        numero_luces_usadas = numero_luces_usadas - 1;
+                        sacarLuz(view);
                     }
 
                 }
             }
         } else {
             if (!es_borde) {
-                ImageView luz_a_cambiar = (ImageView) findViewById(v.getId());
+                ImageView luz_a_cambiar = (ImageView) findViewById(view.getId());
                 int color_luz = ((ColorDrawable)luz_a_cambiar.getBackground()).getColor();
                 if (color_luz==Color.rgb(255,255, 255))
                     luz_a_cambiar.setBackgroundColor(Color.rgb(255, 0, 0));
@@ -237,21 +195,43 @@ public class Principal extends AppCompatActivity implements View.OnClickListener
         }
     }
 
-    private void ponerLuz (String color, int pos_fila, int pos_col ) {
-        if (numero_luces_usadas < numero_luces_registradas) {
-            numero_luces_usadas = numero_luces_usadas + 1;
 
-            //selecciono el srawable de la luz correspondiente
-            String luz_a_poner = "@drawable/luz" + String.valueOf(numero_luces_usadas);
+    private void ponerLuz (int id_luz, int pos_fila, int pos_col, String color, View view) {
+        if (numero_luces_usadas < numero_luces_registradas) {
+            if (id_luz==0) {
+                //usuario esta creando una luz desde ui; debo recorrer el arreglo y encontrar un id_luz disponible
+                int i=0;
+                while (lista_id_luces[i]!=3){
+                    i++;
+                }
+                id_luz = i+1;
+                lista_id_luces[i]=1;
+            } else {
+                lista_id_luces[id_luz-1]=1;
+            }
+
+            //selecciono el drawable de la luz correspondiente
+            String luz_a_poner = "@drawable/luz" + String.valueOf(id_luz);
             int id_luz_a_poner = getResources().getIdentifier(luz_a_poner, "drawable", getPackageName());
 
-            //selecciono cual de todos los imageview debe ser cambiado
-            posicion = "pos" + String.valueOf(pos_fila) + String.valueOf(pos_col);
-            recursoID = getResources().getIdentifier(posicion, "id", getPackageName());
+            if (view==null) {
+                //selecciono cual de todos los imageview debe ser cambiado usando posicion
+                posicion = "pos" + String.valueOf(pos_fila) + String.valueOf(pos_col);
+                recursoID = getResources().getIdentifier(posicion, "id", getPackageName());
 
+            } else {
+                recursoID = view.getId();
+            }
+
+            //asocio la posicion con un imageview
             ImageView img = (ImageView) findViewById(recursoID);
-            img.setOnClickListener(this);
 
+            if (view==null) {
+                //agrego el comportamiento onClick
+                img.setOnClickListener(this);
+            }
+
+            //pongo los tags para manejo
             img.setTag(R.id.id_imagenview_container,recursoID);
             img.setTag(R.id.id_imagen, id_luz_a_poner);
             img.setTag(R.id.imagen, luz_a_poner);
@@ -290,9 +270,70 @@ public class Principal extends AppCompatActivity implements View.OnClickListener
             }
 
             img.setImageResource(id_luz_a_poner);
+            numero_luces_usadas = numero_luces_usadas + 1;
 
         } else {
             Toast toast1 = Toast.makeText(getApplicationContext(),"No se pueden agregar mas luces", Toast.LENGTH_SHORT);
+            toast1.show();
+        }
+    }
+
+    private void sacarLuz (View view) {
+        if (numero_luces_usadas>0) {
+            numero_luces_usadas = numero_luces_usadas - 1;
+            String posicion_a_borrar = (String)view.getTag(R.id.posicion);
+            final int id_luz =
+            int fila = Integer.valueOf(posicion_a_borrar.substring(3,4));
+            int columna = Integer.valueOf(posicion_a_borrar.substring(4,5));
+
+            String borde_a_poner="";
+            if (fila==1) {
+                switch(columna){
+                    case 1:
+                        borde_a_poner = uriSI;
+                        break;
+
+                    case 8:
+                        borde_a_poner = uriSD;
+                        break;
+
+                    default:
+                        borde_a_poner = uriH;
+                        break;
+                }
+            }
+
+            if (fila==8) {
+                switch (columna) {
+                    case 1:
+                        borde_a_poner = uriII;
+                        break;
+
+                    case 8:
+                        borde_a_poner = uriID;
+                        break;
+
+                    default:
+                        borde_a_poner = uriH;
+                        break;
+                }
+            }
+
+            if (!((fila==8)||(fila==1))){
+                borde_a_poner = uriV;
+            }
+
+            int id_imagen_a_poner = getResources().getIdentifier(borde_a_poner, "drawable", getPackageName());
+
+            ImageView borde_a_cambiar = (ImageView) findViewById(view.getId());
+            borde_a_cambiar.setTag(R.id.imagen, borde_a_poner);
+            borde_a_cambiar.setTag(R.id.id_imagen, id_imagen_a_poner);
+            borde_a_cambiar.setBackgroundColor(Color.rgb(255, 255, 255));
+            borde_a_cambiar.setImageResource(id_imagen_a_poner);
+
+            //aca hay que agregar el drop a la base de datos
+        } else {
+            Toast toast1 = Toast.makeText(getApplicationContext(),"No existen luces para borrar", Toast.LENGTH_SHORT);
             toast1.show();
         }
     }
@@ -478,10 +519,15 @@ public class Principal extends AppCompatActivity implements View.OnClickListener
                     public void onResponse(JSONObject response) {
                         //Process os success response
                         try {
-                            serial = response.getString("serial").toString();
+                            serial = response.getString("serial");
                             numero_luces_registradas = Integer.valueOf(response.get("numero luces").toString());
+                            lista_id_luces =new int[26]; //26 posibles posciones, 26 posibles luces, 26 posibles ids
+                            for(int i=0; i< lista_id_luces.length; i++){
+                                lista_id_luces[i]=3;
+                            }
 
                             final Luces luces[] = new Luces[response.getJSONArray("luces").length()];
+
                             JSONArray getArray = response.getJSONArray("luces");
                             for (int i = 0; i < response.getJSONArray("luces").length(); i++) {
                                 JSONObject objects = getArray.getJSONObject(i);
@@ -491,7 +537,8 @@ public class Principal extends AppCompatActivity implements View.OnClickListener
                                 lucesItem.setPosFila(Integer.valueOf(objects.get("pos_fila").toString()));
                                 lucesItem.setPosCol(Integer.valueOf(objects.get("pos_col").toString()));
                                 luces[i]=lucesItem;
-                                ponerLuz (lucesItem.getColor(), lucesItem.getPosFila(), lucesItem.getPosCol());
+
+                                ponerLuz (lucesItem.getIdLuz(), lucesItem.getPosFila(), lucesItem.getPosCol(), lucesItem.getColor(), null);
                             }
                         } catch (Exception e) {
                             //donde el string viene vacio???
